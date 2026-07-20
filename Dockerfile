@@ -7,6 +7,7 @@ RUN apt-get update && apt-get install -y \
     zip \
     unzip \
     libpq-dev \
+    libsqlite3-dev \
     libzip-dev \
     libpng-dev \
     libonig-dev \
@@ -14,6 +15,7 @@ RUN apt-get update && apt-get install -y \
     && docker-php-ext-install \
         pdo \
         pdo_pgsql \
+        pdo_sqlite \
         pgsql \
         mbstring \
         zip \
@@ -49,9 +51,15 @@ RUN composer install --no-dev --optimize-autoloader
 # Instala dependências JS e builda os assets (Vite)
 RUN npm install && npm run build
 
-# Ajusta permissões das pastas que o Laravel precisa escrever
-RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache \
-    && chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
+# Garante que o arquivo SQLite exista e tenha permissão de escrita.
+# Necessário mesmo se o app usa Postgres para os dados principais, pois o
+# Laravel usa SQLite por padrão para sessão/cache em alguns setups.
+RUN mkdir -p database && touch database/database.sqlite
+
+# Ajusta permissões das pastas/arquivos que o Laravel precisa escrever
+RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache /var/www/html/database \
+    && chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache /var/www/html/database \
+    && chmod 664 /var/www/html/database/database.sqlite
 
 EXPOSE 80
 
