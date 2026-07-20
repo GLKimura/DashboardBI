@@ -33,6 +33,16 @@ ENV APACHE_DOCUMENT_ROOT=/var/www/html/public
 RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/*.conf
 RUN sed -ri -e 's!/var/www/!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/apache2.conf
 
+# Permite que o .htaccess do Laravel funcione (necessário para as rotas
+# amigáveis; sem isso o Apache devolve 404 para tudo que não for arquivo real)
+RUN { \
+        echo '<Directory ${APACHE_DOCUMENT_ROOT}>'; \
+        echo '    Options Indexes FollowSymLinks'; \
+        echo '    AllowOverride All'; \
+        echo '    Require all granted'; \
+        echo '</Directory>'; \
+    } >> /etc/apache2/apache2.conf
+
 # Instala o Composer
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
@@ -52,8 +62,6 @@ RUN composer install --no-dev --optimize-autoloader
 RUN npm install && npm run build
 
 # Garante que o arquivo SQLite exista e tenha permissão de escrita.
-# Necessário mesmo se o app usa Postgres para os dados principais, pois o
-# Laravel usa SQLite por padrão para sessão/cache em alguns setups.
 RUN mkdir -p database && touch database/database.sqlite
 
 # Ajusta permissões das pastas/arquivos que o Laravel precisa escrever
