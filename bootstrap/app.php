@@ -12,7 +12,12 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        //
+        // Confia no proxy do Render (e de qualquer plataforma cloud similar),
+        // que termina o HTTPS na borda e repassa a requisição como HTTP puro
+        // por dentro. Sem isso, o Laravel gera URLs de asset (CSS/JS) como
+        // http:// mesmo em produção HTTPS, e o navegador bloqueia por
+        // "mixed content".
+        $middleware->trustProxies(at: '*');
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //
